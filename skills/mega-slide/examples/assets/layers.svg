@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" font-family="'Noto Sans KR', sans-serif" font-size="34" font-weight="600" fill="#17152B">
+  <rect x="80" y="40" width="640" height="140" rx="24" fill="#E8E3FA" stroke="#6043D5" stroke-width="3"/>
+  <rect x="80" y="210" width="640" height="140" rx="24" fill="#FBECCE" stroke="#D98A00" stroke-width="3"/>
+  <rect x="80" y="380" width="640" height="140" rx="24" fill="#DCE8FB" stroke="#2F6FDB" stroke-width="3"/>
+  <text x="400" y="122" text-anchor="middle">문서</text>
+  <text x="400" y="292" text-anchor="middle">테스트</text>
+  <text x="400" y="462" text-anchor="middle">코드</text>
+</svg>

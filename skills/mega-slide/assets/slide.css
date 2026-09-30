@@ -1,0 +1,76 @@
+/* 1920×1080 무대를 창 크기에 맞춰 축소해 보여 준다. 색·서체는 mega-bi 토큰(tokens.css)과 같은 값 — 바꾸면 함께 고친다 */
+:root {
+  --ink: #17152B; --violet: #6043D5; --amber: #D98A00;
+  --paper: #F6F5FA; --lilac: #E8E3FA; --muted: #68657B; --line: #E8E5EF;
+  --font-body: "Noto Sans KR", system-ui, sans-serif;
+  --font-display: "Space Grotesk", var(--font-body);
+  --s: 1;
+}
+html, body { margin: 0; height: 100%; background: var(--ink); }
+.slide { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; margin: -540px 0 0 -960px; transform: scale(var(--s)); overflow: hidden; visibility: hidden; background: #fff; color: var(--ink); font-family: var(--font-body); word-break: keep-all; overflow-wrap: break-word; -webkit-font-smoothing: antialiased; }
+.slide.active { visibility: visible; }
+#bar { position: fixed; left: 0; bottom: 0; height: 6px; background: var(--amber); transition: width .2s; }
+.shot #bar { display: none; }
+@page { size: 1920px 1080px; margin: 0; }
+@media print {
+  html, body { height: auto; background: #fff; }
+  .slide { position: relative; left: 0; top: 0; margin: 0; transform: none; visibility: visible; break-after: page; }
+  .slide:last-of-type { break-after: auto; }
+  #bar { display: none; }
+}
+
+strong { color: var(--violet); font-weight: 700; }
+code { font: 500 .86em "IBM Plex Mono", ui-monospace, monospace; padding: .05em .3em; border-radius: 8px; background: var(--lilac); }
+
+/* 본문 슬라이드 공통: 작은 머리글(좌 발표 제목, 우 섹션명) + 주제 제목 */
+.hd { position: absolute; left: 120px; right: 120px; top: 52px; display: flex; justify-content: space-between; padding-bottom: 20px; border-bottom: 1px solid var(--line); color: var(--muted); font: 500 22px/1.2 var(--font-body); }
+.pg { position: absolute; right: 120px; bottom: 48px; color: var(--muted); font: 500 22px var(--font-display); }
+.pad { position: absolute; inset: 170px 120px 110px; }
+h2 { margin: 0 0 52px; font: 700 68px/1.25 var(--font-display); letter-spacing: -.04em; }
+h2::before { content: ""; display: block; width: 64px; height: 8px; margin-bottom: 30px; background: var(--amber); }
+.tx p, .tx li { margin: 0 0 18px; color: #2B2940; font-size: 42px; line-height: 1.65; }
+.tx ul { margin: 0; padding: 0; list-style: none; }
+.tx li { position: relative; padding-left: 44px; }
+.tx li::before { content: ""; position: absolute; left: 6px; top: .72em; width: 14px; height: 14px; border-radius: 50%; background: var(--violet); }
+.tx li.sub { margin-left: 44px; color: var(--muted); font-size: 36px; }
+.tx li.sub::before { top: .68em; width: 10px; height: 10px; background: var(--muted); }
+
+/* cover · closing: 파스텔 원 + 제목 */
+.cover .c { position: absolute; border-radius: 50%; mix-blend-mode: multiply; }
+.cover .c1 { width: 820px; height: 820px; right: -140px; top: -220px; background: var(--lilac); }
+.cover .c2 { width: 640px; height: 640px; right: 380px; bottom: -330px; background: #FBECCE; }
+.cover .c3 { width: 560px; height: 560px; right: -120px; bottom: -90px; background: #DCE8FB; }
+.cover .in { position: absolute; left: 120px; top: 50%; max-width: 1250px; transform: translateY(-52%); }
+.cover .ev { margin-bottom: 36px; color: var(--muted); font: 600 28px var(--font-display); letter-spacing: .1em; text-transform: uppercase; }
+.cover h1 { margin: 0; font: 700 104px/1.2 var(--font-display); letter-spacing: -.05em; }
+.cover .sub { margin-top: 32px; color: var(--muted); font-size: 46px; line-height: 1.5; }
+.cover .au { margin-top: 72px; color: var(--muted); font-size: 32px; }
+.closing h1 { font-size: 120px; }
+
+/* section: 모서리 괄호 + 가운데 제목 */
+.section .in { position: absolute; left: 50%; top: 50%; min-width: 900px; padding: 110px 170px; transform: translate(-50%, -50%); text-align: center; }
+.section .in::before, .section .in::after { content: ""; position: absolute; width: 55%; height: 56px; border: 0 solid var(--violet); }
+.section .in::before { left: 0; top: 0; border-width: 4px 0 0 4px; }
+.section .in::after { right: 0; bottom: 0; border-width: 0 4px 4px 0; }
+.section h1 { margin: 0; font: 700 96px/1.25 var(--font-display); letter-spacing: -.045em; }
+.section p { margin: 28px 0 0; color: var(--muted); font-size: 40px; }
+
+/* statement: 한 문장 */
+.statement .in { position: absolute; inset: 0 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.statement p { max-width: 1500px; margin: 0; font: 700 92px/1.4 var(--font-display); letter-spacing: -.045em; }
+.statement .note { margin-top: 48px; color: var(--muted); font-size: 36px; line-height: 1.5; }
+
+/* cols: 2~3칸 카드 */
+.cols .g { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 48px; }
+.cols .card { padding: 52px 48px; border-radius: 28px; background: var(--paper); }
+.cols h3 { margin: 0 0 26px; font: 700 46px/1.3 var(--font-display); letter-spacing: -.03em; }
+.cols .tx p, .cols .tx li { font-size: 34px; }
+
+/* figure · split: 그림 (mega-diagram SVG 등) */
+.figure .pad, .split .pad { display: flex; flex-direction: column; }
+.figure .fig { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 24px; }
+.figure img { width: 100%; height: 100%; object-fit: contain; }
+.cap { color: var(--muted); font-size: 28px; text-align: center; }
+.split .g { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 96px; align-items: center; }
+.split .fig { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 24px; height: 100%; }
+.split img { width: 100%; height: 100%; object-fit: contain; }
