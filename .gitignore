@@ -1,0 +1,10 @@
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+out/
+*.pptx
+!skills/**/examples/*.pptx
+.DS_Store
+site/
+.claude/

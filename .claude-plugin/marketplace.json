@@ -1,0 +1,6 @@
+{
+  "name": "mega-slide",
+  "owner": { "name": "dr-coton" },
+  "metadata": { "description": "발표자료(PPT)를 만드는 스킬. 개발 중 — 슬라이드 생성은 아직 구현되지 않았습니다." },
+  "plugins": [{ "name": "mega-slide", "source": "./" }]
+}

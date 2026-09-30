@@ -1,0 +1,18 @@
+{
+  "name": "mega-slide",
+  "description": "발표자료(PPT)를 만드는 스킬. 개발 중 — 슬라이드 생성은 아직 구현되지 않았습니다.",
+  "version": "0.0.1",
+  "author": { "name": "dr-coton", "url": "https://github.com/dr-coton" },
+  "repository": "https://github.com/Codeblack-Inc/mega-slide",
+  "license": "MIT",
+  "keywords": ["slide", "presentation", "pptx", "발표자료", "korean"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "mega-slide",
+    "shortDescription": "발표자료(PPT)를 만듭니다. (개발 중)",
+    "developerName": "dr-coton",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": []
+  }
+}
