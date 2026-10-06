@@ -1,13 +1,15 @@
 #!/usr/bin/env node
-// deck.json → 단일 HTML(키보드로 넘김) → Chrome으로 PDF · PNG.  의존성 없음 (Node 18+, Chrome)
-//   node slide.mjs build deck.json [-o out/deck.html] [--pdf] [--png]
+// deck.json → 단일 HTML(키보드로 넘김) → Chrome으로 PDF · PNG · PPTX.  의존성 없음 (Node 18+, Chrome)
+//   node slide.mjs build deck.json [-o out/deck.html] [--pdf] [--png] [--pptx [--font "서체"]]
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, resolve, extname, basename, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
+import { pptx } from "./pptx.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CSS = readFileSync(join(HERE, "../assets/slide.css"), "utf8");
+const EXTRACT = readFileSync(join(HERE, "../assets/extract.js"), "utf8");   // ?pptx 로 열 때만 동작: 슬라이드 레이아웃을 재서 JSON으로 남긴다
 const FONTS = "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Noto+Sans+KR:wght@200;300;400;500;700&family=Space+Grotesk:wght@500&display=swap";
 
 const JS = `
@@ -176,15 +178,21 @@ export function render(deck, base = ".", warnings = []) {
 ${slides.join("\n")}
 <div id="bar"></div>
 <script>${JS}</script>
+<script>${EXTRACT}</script>
 </body></html>
 `;
 }
 
-function chrome() {
+export function findChrome() {
   const found = [process.env.CHROME, "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Chromium.app/Contents/MacOS/Chromium"].filter(Boolean).find(existsSync);
   if (found) return found;
   for (const n of ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]) if (spawnSync("which", [n]).status === 0) return n;
-  throw new Error("Chrome을 찾지 못했다. CHROME 환경변수에 실행 파일 경로를 지정한다");
+  return null;
+}
+function chrome() {
+  const c = findChrome();
+  if (!c) throw new Error("Chrome을 찾지 못했다. CHROME 환경변수에 실행 파일 경로를 지정한다");
+  return c;
 }
 
 // 웹 폰트를 받을 시간을 주고(virtual-time-budget) 실행한다
@@ -194,9 +202,17 @@ function headless(out, ...args) {
   return out;
 }
 
+// ?pptx 로 연 페이지가 남긴 레이아웃 JSON을 읽는다 (--dump-dom: 렌더가 끝난 DOM을 stdout으로)
+export function measure(url) {
+  const r = spawnSync(chrome(), ["--headless=new", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1", "--virtual-time-budget=15000", "--window-size=1920,1080", "--dump-dom", `${url}?pptx`], { maxBuffer: 1 << 30 });
+  const m = /<script type="application\/json" id="pptx-layout">([\s\S]*?)<\/script>/.exec(r.stdout.toString("utf8"));
+  if (!m) throw new Error("슬라이드 레이아웃을 읽지 못했다 (Chrome을 확인한다)");
+  return JSON.parse(m[1]);
+}
+
 function main([cmd, input, ...rest]) {
   if (cmd !== "build" || !input) {
-    console.error("사용: node slide.mjs build deck.json [-o out/deck.html] [--pdf] [--png]");
+    console.error('사용: node slide.mjs build deck.json [-o out/deck.html] [--pdf] [--png] [--pptx [--font "서체"]]');
     process.exit(1);
   }
   const at = rest.indexOf("-o");
@@ -208,6 +224,12 @@ function main([cmd, input, ...rest]) {
   warnings.forEach((w) => console.error(`경고: ${w}`));
   const url = pathToFileURL(out).href, stem = out.replace(/\.html$/, "");
   if (rest.includes("--pdf")) console.log(headless(`${stem}.pdf`, "--no-pdf-header-footer", `--print-to-pdf=${stem}.pdf`, url));
+  if (rest.includes("--pptx")) {
+    const fi = rest.indexOf("--font"), font = fi >= 0 ? rest[fi + 1] : "";
+    writeFileSync(`${stem}.pptx`, pptx(measure(url), plain(deck.title), font));
+    console.log(`${stem}.pptx`);
+    if (!font) console.error("안내: PPTX는 Noto Sans KR·Space Grotesk 서체를 씁니다. 설치돼 있지 않으면 다른 서체로 보입니다 (--font \"서체\"로 바꿀 수 있다)");
+  }
   if (rest.includes("--png")) {
     mkdirSync(`${stem}-png`, { recursive: true });
     for (let k = 1; k <= deck.slides.length; k++) {

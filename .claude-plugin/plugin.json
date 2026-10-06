@@ -1,9 +1,9 @@
 {
   "name": "mega-slide",
-  "description": "회색 글자와 가는 선으로 정리하는 조용한 포스터형 발표 슬라이드를 웹(HTML)이나 PDF로 바로 만듭니다. 스토리를 설계하고 레이아웃을 골라 키보드로 넘기는 HTML과 PDF를 생성합니다. PPT 파일은 만들지 않습니다. 한국어 우선.",
-  "version": "0.3.0",
+  "description": "회색 글자와 가는 선으로 정리하는 조용한 포스터형 발표 슬라이드를 웹(HTML)·PDF·PowerPoint(.pptx)로 바로 만듭니다. 스토리를 설계하고 레이아웃을 골라 키보드로 넘기는 HTML, PDF, 편집 가능한 PPT를 생성합니다. 한국어 우선.",
+  "version": "0.4.0",
   "author": { "name": "dr-coton", "url": "https://github.com/dr-coton" },
   "repository": "https://github.com/Codeblack-Inc/mega-slide",
   "license": "MIT",
-  "keywords": ["slide", "presentation", "html", "pdf", "발표자료", "korean"]
+  "keywords": ["slide", "presentation", "html", "pdf", "pptx", "발표자료", "korean"]
 }

@@ -1,7 +1,12 @@
-// node tests/test.mjs — HTML 렌더 검사 (Chrome 없이 돈다)
+// node tests/test.mjs — HTML 렌더·PPTX 작성 검사. Chrome이 없으면 PPTX 종단 검사만 건너뛴다
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { render, fit, LAYOUTS } from "../skills/mega-slide/scripts/slide.mjs";
+import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { inflateRawSync } from "node:zlib";
+import { render, fit, LAYOUTS, measure, findChrome } from "../skills/mega-slide/scripts/slide.mjs";
+import { pptx, crc32 } from "../skills/mega-slide/scripts/pptx.mjs";
 
 const dir = new URL("../skills/mega-slide/examples/", import.meta.url).pathname;
 const sample = JSON.parse(readFileSync(dir + "sample.json", "utf8"));
@@ -34,5 +39,55 @@ assert(!evil.includes("<img src=x"), "제목은 이스케이프된다");
 assert.throws(() => render({ title: "t", slides: [{ layout: "nope" }] }), /모르는 layout/);
 assert.throws(() => render({ title: "t", slides: [{ layout: "content", title: "제목만" }] }), /"body"가 필요/);
 assert.throws(() => render({ title: "t", slides: [{ layout: "cols", title: "x", cols: [{ title: "하나", body: [] }] }] }), /2~3개/);
+
+// ── PPTX ─────────────────────────────────────────────────────────────────────────
+function unzip(buf) {                                          // 우리가 쓴 ZIP을 다시 읽어 CRC까지 확인한다
+  const end = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06])), n = buf.readUInt16LE(end + 10);
+  const out = {};
+  for (let i = 0, p = buf.readUInt32LE(end + 16); i < n; i++) {
+    const nl = buf.readUInt16LE(p + 28), xl = buf.readUInt16LE(p + 30), cl = buf.readUInt16LE(p + 32), lo = buf.readUInt32LE(p + 42);
+    const name = buf.toString("utf8", p + 46, p + 46 + nl), at = lo + 30 + buf.readUInt16LE(lo + 26) + buf.readUInt16LE(lo + 28);
+    const data = inflateRawSync(buf.subarray(at, at + buf.readUInt32LE(p + 20)));
+    assert.equal(crc32(data), buf.readUInt32LE(p + 16), `CRC: ${name}`);
+    out[name] = data.toString("latin1") === data.toString("utf8") ? data.toString("utf8") : data;
+    p += 46 + nl + xl + cl;
+  }
+  return out;
+}
+function wellFormed(xml, name) {                               // 태그 짝이 맞는지 (우리가 만든 XML 한정의 간이 검사)
+  const stack = [];
+  for (const m of xml.matchAll(/<(\/?)([\w:.-]+)[^>]*?(\/?)>/g)) {
+    if (m[3]) continue;
+    if (!m[1]) stack.push(m[2]);
+    else assert.equal(stack.pop(), m[2], `태그 짝: ${name}`);
+  }
+  assert.equal(stack.length, 0, `닫히지 않은 태그: ${name}`);
+}
+const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+const fake = [{
+  texts: [{ x: 96, y: 100, w: 400, lh: 60, ls: -2, lines: [[{ t: "가나다", fw: 700, fs: 44, color: "4A4760", ff: "Noto Sans KR" }], [{ t: "<b>&", fw: 200, fs: 44, color: "4A4760", ff: "Noto Sans KR" }]] }],
+  lines: [{ x1: 96, x2: 1824, y: 52, w: 2, color: "9A97AE" }],
+  images: [{ x: 0, y: 0, w: 10, h: 10, alt: "그림", png: PNG }],
+}];
+const files = unzip(pptx(fake, "제목"));
+for (const need of ["[Content_Types].xml", "_rels/.rels", "ppt/presentation.xml", "ppt/slides/slide1.xml", "ppt/slides/_rels/slide1.xml.rels", "ppt/media/image1_1.png", "ppt/theme/theme1.xml"]) assert(need in files, `PPTX 부품: ${need}`);
+for (const [name, data] of Object.entries(files)) if (typeof data === "string") wellFormed(data, name);
+const slide = files["ppt/slides/slide1.xml"];
+assert(slide.includes("&lt;b&gt;&amp;") && !slide.includes("<b>&"), "PPTX 글자는 이스케이프된다");
+assert(slide.includes("<a:br>") && slide.includes('b="1"') && slide.includes("Noto Sans KR ExtraLight"), "줄바꿈 · 굵게 · 굵기별 서체");
+assert(pptx(fake, "t", "Pretendard").toString("latin1").length > 0 && unzip(pptx(fake, "t", "Pretendard"))["ppt/slides/slide1.xml"].includes('typeface="Pretendard"'), "--font는 모든 글자에 적용된다");
+
+// 종단: Chrome이 있으면 샘플 전체를 재서 PPTX로 만든다
+if (findChrome()) {
+  const tmp = mkdtempSync(join(tmpdir(), "mega-slide-"));
+  writeFileSync(join(tmp, "deck.html"), html);
+  const layout = measure(pathToFileURL(join(tmp, "deck.html")).href);
+  assert.equal(layout.length, sample.slides.length, "측정한 슬라이드 수");
+  const parts = unzip(pptx(layout, "샘플"));
+  const all = Object.entries(parts).filter(([n]) => /^ppt\/slides\/slide\d+\.xml$/.test(n)).map(([, d]) => d).join("");
+  for (const t of ["오래 쓰는 법", "10분", "감사합니다"]) assert(all.includes(t), `PPTX에 글이 있다: ${t}`);
+  assert.equal((all.match(/<p:pic>/g) ?? []).length, 2, "그림 2장 (figure, split)");
+  assert(all.includes("<p:cxnSp>"), "가는 선이 있다");
+} else console.log("(Chrome 없음: PPTX 종단 검사는 건너뜀)");
 
 console.log("ok");
