@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CSS = readFileSync(join(HERE, "../assets/slide.css"), "utf8");
-const FONTS = "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Noto+Sans+KR:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap";
+const FONTS = "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Noto+Sans+KR:wght@200;300;400;500;700&family=Space+Grotesk:wght@500&display=swap";
 
 const JS = `
 const S = [...document.querySelectorAll(".slide")], bar = document.getElementById("bar");
@@ -34,12 +34,37 @@ go((parseInt(location.hash.slice(1)) || 1) - 1);
 `;
 
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-// 이스케이프한 뒤 **강조** · `코드`만 살린다
+// 이스케이프한 뒤 **강조**(굵게) · `코드` · 줄바꿈만 살린다
 const inline = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`(.+?)`/g, "<code>$1</code>").replace(/\n/g, "<br>");
-const plain = (t) => String(t ?? "").replace(/\*\*/g, "");
+const plain = (t) => String(t ?? "").replace(/\*\*/g, "").replace(/\n/g, " ");
 
-// 줄 배열: "- "로 시작하면 불릿, 앞에 공백이 있으면 2단계
-function body(lines = []) {
+// ── 글자 크기: 글자 수에 맞춰 정한다 ──────────────────────────────────────────────
+// K = 크기 배율. 시안 8(회색, 70%)과 9(가는 선, 55%)을 합쳐 60%로 정했다. 키우거나 줄이려면 이 값 하나만 고친다.
+const K = 0.6;
+const px = (n) => Math.round(n * K);
+// wlen = 글자 폭의 합(em). 한글은 1em에서 자간(-.06em)을 뺀 0.94em, 그 밖은 0.6em, 공백은 0.3em으로 근사한다.
+// ponytail: 폰트 실측이 아니라 근사 — 큰 오차가 나는 글은 PNG로 보고 max/min을 조정한다
+const HANGUL = /[ᄀ-ᇿ㄰-㆏가-힯一-鿿]/;
+export const wlen = (t) => [...String(t ?? "").replace(/\*\*|`/g, "")].reduce((n, c) => n + (HANGUL.test(c) ? 0.94 : c === " " ? 0.3 : 0.6), 0);
+// 줄바꿈("\n")이 있으면 가장 긴 줄이 한 줄에 들어가게, 없으면 wrap줄까지 감아 쓴다고 보고 크기를 정한다
+export function fit(text, { max, min, width = 1728, wrap = 1 }, c, what) {
+  const lines = String(text).split("\n");
+  const longest = Math.max(...lines.map(wlen), 1);
+  const raw = Math.floor((lines.length > 1 ? width : width * wrap * 0.9) / longest);
+  if (raw < min) c?.w(`${what}이(가) 너무 길다 — 줄이거나 줄바꿈("\\n")을 넣는다`);
+  return Math.max(min, Math.min(max, raw));
+}
+
+// 본문 줄: 최상위 줄이 많을수록, 긴 줄이 있을수록 작게
+function listSize(lines, width = 1728) {
+  const items = lines.filter((l) => !/^\s+- /.test(l)).length;
+  const base = px(items <= 3 ? 74 : items === 4 ? 64 : items === 5 ? 56 : 48);
+  const longest = Math.max(...lines.map((l) => wlen(l.replace(/^\s*- /, ""))), 1);
+  return Math.max(28, Math.min(base, Math.floor((width * 0.95) / longest)));
+}
+
+// 줄 배열: "- "로 시작하면 불릿, 앞에 공백이 있으면 2단계(작고 연하게)
+function body(lines = [], c, width, css = true) {
   let out = "", list = false;
   for (const line of lines) {
     const m = /^(\s*)- (.*)$/.exec(line);
@@ -51,7 +76,9 @@ function body(lines = []) {
       out += `<p>${inline(line)}</p>`;
     }
   }
-  return `<div class="tx">${out}${list ? "</ul>" : ""}</div>`;
+  const top = lines.filter((l) => !/^\s+- /.test(l)).length;
+  if (top > 6) c.w(`본문 줄이 ${top}개다 — 6개 이하로 줄이거나 장을 나눈다`);
+  return `<div class="tx"${css ? ` style="--li:${listSize(lines, width)}px"` : ""}>${out}${list ? "</ul>" : ""}</div>`;
 }
 
 const MIME = { ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif" };
@@ -67,58 +94,77 @@ const cap = (s) => (s.caption ? `<div class="cap">${inline(s.caption)}</div>` : 
 const page = (c, inner) =>
   `<header class="hd"><span>${esc(plain(c.deck.title))}</span><span>${esc(c.section)}</span></header>` +
   `<div class="pad">${inner}</div><div class="pg">${c.n} / ${c.total}</div>`;
-const title = (s) => `<h2>${inline(s.title)}</h2>`;
-const circles = '<i class="c c1"></i><i class="c c2"></i><i class="c c3"></i>';
+const head = (s, c) => `<h2 style="font-size:${fit(s.title, { max: px(160), min: px(88), wrap: 2 }, c, "제목")}px">${inline(s.title)}</h2>`;
+const small = (s) => `<h2>${inline(s.title)}</h2>`;
+// 표지·마무리 공통: 첫 줄은 Black, 나머지 줄은 ExtraLight
+function big(title, max, c) {
+  const [first, ...rest] = String(title).split("\n");
+  if (rest.length > 2) c.w("표지·마무리 제목은 3줄까지");
+  return `<h1 style="font-size:${fit(title, { max, min: px(96), width: 1752 }, c, "제목")}px">${inline(first)}${rest.map((r) => `<span>${inline(r)}</span>`).join("")}</h1>`;
+}
+const top = (d) => `${d.event ? `<div class="ev">${esc(d.event)}</div>` : ""}${d.author ? `<div class="au">${esc(d.author)}</div>` : ""}`;
 
 // 레이아웃 = (slide, ctx) → 슬라이드 안쪽 HTML.  새 레이아웃은 여기에 추가하고 references/layouts.md에 적는다
 export const LAYOUTS = {
   cover(s, c) {
     const d = { ...c.deck, ...s };
-    return circles + `<div class="in">${d.event ? `<div class="ev">${esc(d.event)}</div>` : ""}<h1>${inline(d.title)}</h1>` +
-      `${d.subtitle ? `<div class="sub">${inline(d.subtitle)}</div>` : ""}${d.author ? `<div class="au">${esc(d.author)}</div>` : ""}</div>`;
+    return top(d) + big(d.title, px(252), c) + (d.subtitle ? `<div class="sub">${inline(d.subtitle)}</div>` : "");
   },
-  section(s) {
+  section(s, c) {
     need(s, "title");
-    return `<div class="in"><h1>${inline(s.title)}</h1>${s.text ? `<p>${inline(s.text)}</p>` : ""}</div>`;
+    const no = String(s.no ?? ++c.sec.n);
+    return `<div class="no${no.length > 1 ? " long" : ""}">${esc(no)}</div>` +
+      `<h1 style="font-size:${fit(s.title, { max: px(160), min: px(72) }, c, "제목")}px">${inline(s.title)}</h1>${s.text ? `<p>${inline(s.text)}</p>` : ""}`;
   },
   content(s, c) {
     need(s, "title", "body");
-    return page(c, title(s) + body(s.body));
+    return page(c, head(s, c) + body(s.body, c));
   },
-  statement(s) {
+  statement(s, c) {
     need(s, "text");
-    return `<div class="in"><p>${inline(s.text)}</p>${s.note ? `<div class="note">${inline(s.note)}</div>` : ""}</div>`;
+    return `<p style="font-size:${fit(s.text, { max: px(200), min: px(100), wrap: 3 }, c, "문장")}px">${inline(s.text)}</p>${s.note ? `<div class="note">${inline(s.note)}</div>` : ""}`;
+  },
+  number(s, c) {
+    need(s, "value", "label");
+    const fs = fit(s.value, { max: px(560), min: px(200) }, c, "숫자");
+    return page(c, `<div class="lab">${inline(s.label)}</div><div><span class="val" style="font-size:${fs}px">${inline(s.value)}</span>${s.note ? `<div class="note">${inline(s.note)}</div>` : ""}</div>`);
   },
   cols(s, c) {
     need(s, "title", "cols");
-    if (s.cols.length < 2 || s.cols.length > 3) throw new Error(`slide ${s._n} (cols): 칸은 2~3개`);
-    const cards = s.cols.map((k) => `<div class="card"><h3>${inline(k.title)}</h3>${body(k.body)}</div>`).join("");
-    return page(c, title(s) + `<div class="g" style="--n:${s.cols.length}">${cards}</div>`);
+    const n = s.cols.length;
+    if (n < 2 || n > 3) throw new Error(`slide ${s._n} (cols): 칸은 2~3개`);
+    const w = (1728 - 64 * (n - 1)) / n;
+    const fs = Math.min(...s.cols.map((k) => fit(k.title, { max: px(100), min: px(56), width: w }, c, "칸 제목")));
+    s.cols.forEach((k) => { if ((k.body ?? []).length > 4) c.w(`칸 본문이 ${k.body.length}줄이다 — 4줄 이하로`); });
+    const cards = s.cols.map((k) => `<div class="card"><h3 style="font-size:${fs}px">${inline(k.title)}</h3>${body(k.body, c, w, false)}</div>`).join("");
+    return page(c, small(s) + `<div class="g" style="--n:${n}">${cards}</div>`);
   },
   figure(s, c) {
     need(s, "title", "image");
-    return page(c, title(s) + `<div class="fig">${img(s.image, c.base, s.alt ?? s.title)}${cap(s)}</div>`);
+    return page(c, small(s) + `<div class="fig">${img(s.image, c.base, s.alt ?? s.title)}${cap(s)}</div>`);
   },
   split(s, c) {
     need(s, "title", "body", "image");
-    return page(c, title(s) + `<div class="g">${body(s.body)}<div class="fig">${img(s.image, c.base, s.alt ?? s.title)}${cap(s)}</div></div>`);
+    return page(c, small(s) + `<div class="g">${body(s.body, c, 816)}<div class="fig">${img(s.image, c.base, s.alt ?? s.title)}${cap(s)}</div></div>`);
   },
   closing(s, c) {
-    const d = { title: "감사합니다", ...s };
-    return circles + `<div class="in"><h1>${inline(d.title)}</h1>${(d.body ?? []).map((l) => `<div class="sub">${inline(l)}</div>`).join("")}</div>`;
+    const d = { ...c.deck, title: "감사합니다", ...s };
+    return top(d) + big(d.title, px(250), c) + ((s.body ?? []).length ? `<div class="sub">${s.body.map((l) => `<div>${inline(l)}</div>`).join("")}</div>` : "");
   },
 };
+const CLASS = { closing: "cover closing", cols: "cols small", figure: "figure small", split: "split small" };
 
-export function render(deck, base = ".") {
+// warnings: 넘칠 것 같은 슬라이드를 문자열로 모은다
+export function render(deck, base = ".", warnings = []) {
   if (!deck?.title || !Array.isArray(deck.slides) || !deck.slides.length) throw new Error("deck.title과 slides가 필요하다");
   let section = "";
-  const total = deck.slides.length;
+  const total = deck.slides.length, sec = { n: 0 };
   const slides = deck.slides.map((s, i) => {
     const layout = LAYOUTS[s.layout];
     if (!layout) throw new Error(`slide ${i + 1}: 모르는 layout "${s.layout}" (${Object.keys(LAYOUTS).join(" · ")})`);
     if (s.layout === "section") section = plain(s.title);
-    const html = layout({ ...s, _n: i + 1 }, { deck, base, section, n: i + 1, total });
-    return `<section class="slide ${s.layout === "closing" ? "cover closing" : s.layout}">${html}</section>`;
+    const c = { deck, base, section, sec, n: i + 1, total, w: (m) => warnings.push(`slide ${i + 1} (${s.layout}): ${m}`) };
+    return `<section class="slide ${CLASS[s.layout] ?? s.layout}">${layout({ ...s, _n: i + 1 }, c)}</section>`;
   });
   return `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -156,9 +202,10 @@ function main([cmd, input, ...rest]) {
   const at = rest.indexOf("-o");
   const out = resolve(at >= 0 ? rest[at + 1] : join("out", basename(input, extname(input)) + ".html"));
   mkdirSync(dirname(out), { recursive: true });
-  const deck = JSON.parse(readFileSync(input, "utf8"));
-  writeFileSync(out, render(deck, dirname(resolve(input))));
+  const deck = JSON.parse(readFileSync(input, "utf8")), warnings = [];
+  writeFileSync(out, render(deck, dirname(resolve(input)), warnings));
   console.log(out);
+  warnings.forEach((w) => console.error(`경고: ${w}`));
   const url = pathToFileURL(out).href, stem = out.replace(/\.html$/, "");
   if (rest.includes("--pdf")) console.log(headless(`${stem}.pdf`, "--no-pdf-header-footer", `--print-to-pdf=${stem}.pdf`, url));
   if (rest.includes("--png")) {

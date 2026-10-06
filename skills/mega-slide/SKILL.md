@@ -1,14 +1,14 @@
 ---
 name: mega-slide
-description: 여백 있는 발표용 슬라이드를 웹(HTML)이나 PDF로 만든다. 사용자가 발표 슬라이드·토크 덱·발표 자료를 웹이나 PDF로 만들어 달라고 할 때 사용. PPT(.pptx) 파일은 만들지 않는다 — 그건 mega-ppt. 스토리 설계 → deck.json 작성 → build로 HTML+PDF 생성 → 슬라이드 PNG로 시각 검수. 한국어 우선.
+description: 회색 글자와 가는 선으로 정리하는 조용한 포스터형 발표 슬라이드를 웹(HTML)이나 PDF로 만든다. 사용자가 발표 슬라이드·토크 덱·발표 자료를 웹이나 PDF로 만들어 달라고 할 때 사용. PPT(.pptx) 파일은 만들지 않는다 — 그건 mega-ppt. 스토리 설계 → deck.json 작성 → build로 HTML+PDF 생성 → 슬라이드 PNG로 시각 검수. 한국어 우선.
 license: MIT
 metadata:
-  version: "0.1.0"
+  version: "0.3.0"
 ---
 
 # mega-slide
 
-글이 적고 여백이 많은 **발표용 슬라이드**를 만든다. 결과는 키보드로 넘기는 HTML 한 파일과 PDF다. 색과 서체는 mega 브랜드(Noto Sans KR · Space Grotesk, Ink·Violet·Amber)를 쓴다.
+글이 적고 여백이 많은 **조용한 포스터형 발표 슬라이드**를 만든다. 장식 없이 글자의 크기와 굵기(Bold ↔ ExtraLight)로 위계를 세우고 가는 선으로 칸을 나눈다. 색은 mega Ink에서 한 톤 낮춘 회보라 계열뿐이고 서체는 Noto Sans KR·Space Grotesk다. 결과는 키보드로 넘기는 HTML 한 파일과 PDF다.
 
 이 파일이 있는 디렉터리를 `$SKILL`이라 한다. Node 18+와 Chrome이 필요하다(Chrome이 다른 곳에 있으면 `CHROME` 환경변수). 웹 폰트는 Google Fonts에서 받으므로 온라인이어야 서체가 맞는다.
 
@@ -27,13 +27,15 @@ node $SKILL/scripts/slide.mjs build deck.json -o out/deck.html --pdf --png
 - 편집 가능한 PowerPoint(.pptx)가 필요하거나 표·차트가 빽빽한 보고서형 장표면 mega-ppt를 안내한다.
 
 ### 2. 스토리
-- 한 장에 메시지 하나. 제목은 짧은 주제어나 한 문장으로, 글은 적게 쓴다 (잠정 기준: 본문 줄 5개 이하, 장당 대략 100자 안쪽).
-- 장이 바뀌는 곳에 `section`을 둔다. 핵심 한 문장은 `statement`로 크게 보인다.
-- 구조·흐름·비교는 글보다 그림. 다이어그램은 mega-diagram으로 SVG를 만들어 `figure`/`split`에 넣는다.
+- 한 장에 메시지 하나. 제목은 짧은 주제어나 한 문장으로, 글은 적게 쓴다. 이 디자인은 글자가 곧 그림이라 글이 길어지면 무너진다 — 본문 줄은 6개 이하(잠정), 넘치면 빌드가 경고한다.
+- 장이 바뀌는 곳에 `section`, 핵심 한 문장은 `statement`, 숫자 하나가 메시지면 `number`로 화면 가득 보인다.
+- 표지 제목은 `\n`으로 줄을 나눈다: 첫 줄은 Bold, 나머지는 ExtraLight로 굵기 대비가 생긴다.
+- 강조는 `**굵게**`뿐이다. 색으로 강조하지 않는다.
+- 구조·흐름·비교는 글보다 그림. 다이어그램은 mega-diagram으로 SVG를 만들어 `figure`/`split`에 넣되, 이 디자인에는 회색 단색에 얇은 선(3px)이 어울린다.
 
 ### 3. deck.json
 레이아웃 종류와 필드는 [`references/layouts.md`](references/layouts.md), 예시는 [`examples/sample.json`](examples/sample.json). 첫 장은 `cover`, 마지막은 `closing`.
 
 ### 4. 빌드와 검수
 - `build … --pdf --png`를 실행하고 **PNG를 직접 열어 본다**: 글이 넘치거나 줄바꿈이 어색한 곳, 텅 빈 장, 그림이 잘린 곳을 찾아 `deck.json`을 고친다.
-- 오류 메시지(모르는 layout, 필수 필드 누락)는 슬라이드 번호와 함께 나온다.
+- 오류 메시지(모르는 layout, 필수 필드 누락)와 `경고:`(글이 길어 넘칠 것 같음)는 슬라이드 번호와 함께 나온다. 경고는 글을 줄이거나 장을 나눠서 없앤다.

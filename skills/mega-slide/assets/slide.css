@@ -1,13 +1,15 @@
-/* 1920×1080 무대를 창 크기에 맞춰 축소해 보여 준다. 색·서체는 mega-bi 토큰(tokens.css)과 같은 값 — 바꾸면 함께 고친다 */
+/* Type Poster (회색 + 가는 선) — 1920×1080 무대를 창 크기에 맞춰 축소해 보여 준다.
+   장식 없이 글자의 크기와 굵기(Bold 700 ↔ ExtraLight 200)로 위계를 만들고, 가는 선으로 칸을 나눈다. 강조색은 없다.
+   글자 크기는 slide.mjs가 글자 수에 맞춰 인라인으로 정한다(배율 K). 색·서체는 mega-bi 토큰에서 한 톤 낮춘 회보라 — 바꾸면 함께 고친다 */
 :root {
-  --ink: #17152B; --violet: #6043D5; --amber: #D98A00;
-  --paper: #F6F5FA; --lilac: #E8E3FA; --muted: #68657B; --line: #E8E5EF;
-  --font-body: "Noto Sans KR", system-ui, sans-serif;
-  --font-display: "Space Grotesk", var(--font-body);
+  --head: #4A4760; --text: #55526B; --body: #5F5C75; --strong: #3D3A55;
+  --muted: #8A869E; --rule: #9A97AE; --tint: #EFEDF4; --amber: #D98A00; --ink: #17152B;
+  --nk: "Noto Sans KR", system-ui, sans-serif;
+  --sg: "Space Grotesk", var(--nk);
   --s: 1;
 }
 html, body { margin: 0; height: 100%; background: var(--ink); }
-.slide { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; margin: -540px 0 0 -960px; transform: scale(var(--s)); overflow: hidden; visibility: hidden; background: #fff; color: var(--ink); font-family: var(--font-body); word-break: keep-all; overflow-wrap: break-word; -webkit-font-smoothing: antialiased; }
+.slide { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; margin: -540px 0 0 -960px; transform: scale(var(--s)); overflow: hidden; visibility: hidden; background: #fff; color: var(--text); font-family: var(--nk); word-break: keep-all; overflow-wrap: break-word; -webkit-font-smoothing: antialiased; }
 .slide.active { visibility: visible; }
 #bar { position: fixed; left: 0; bottom: 0; height: 6px; background: var(--amber); transition: width .2s; }
 .shot #bar { display: none; }
@@ -19,58 +21,63 @@ html, body { margin: 0; height: 100%; background: var(--ink); }
   #bar { display: none; }
 }
 
-strong { color: var(--violet); font-weight: 700; }
-code { font: 500 .86em "IBM Plex Mono", ui-monospace, monospace; padding: .05em .3em; border-radius: 8px; background: var(--lilac); }
+h1, h2, h3, p, ul { margin: 0; padding: 0; }
+h1, h2, h3 { color: var(--head); font-family: var(--nk); font-weight: 700; line-height: 1.04; letter-spacing: -.06em; text-wrap: balance; }
+ul { list-style: none; }
+strong { color: var(--strong); font-weight: 700; }
+code { padding: .04em .28em; border-radius: 8px; background: var(--tint); font: 500 .84em "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0; }
 
-/* 본문 슬라이드 공통: 작은 머리글(좌 발표 제목, 우 섹션명) + 주제 제목 */
-.hd { position: absolute; left: 120px; right: 120px; top: 52px; display: flex; justify-content: space-between; padding-bottom: 20px; border-bottom: 1px solid var(--line); color: var(--muted); font: 500 22px/1.2 var(--font-body); }
-.pg { position: absolute; right: 120px; bottom: 48px; color: var(--muted); font: 500 22px var(--font-display); }
-.pad { position: absolute; inset: 170px 120px 110px; }
-h2 { margin: 0 0 52px; font: 700 68px/1.25 var(--font-display); letter-spacing: -.04em; }
-h2::before { content: ""; display: block; width: 64px; height: 8px; margin-bottom: 30px; background: var(--amber); }
-.tx p, .tx li { margin: 0 0 18px; color: #2B2940; font-size: 42px; line-height: 1.65; }
-.tx ul { margin: 0; padding: 0; list-style: none; }
-.tx li { position: relative; padding-left: 44px; }
-.tx li::before { content: ""; position: absolute; left: 6px; top: .72em; width: 14px; height: 14px; border-radius: 50%; background: var(--violet); }
-.tx li.sub { margin-left: 44px; color: var(--muted); font-size: 36px; }
-.tx li.sub::before { top: .68em; width: 10px; height: 10px; background: var(--muted); }
+/* 머리글: 발표 제목(좌) · 현재 섹션(우), 밑에 가는 선. 쪽 번호는 오른쪽 아래 */
+.hd, .pg, .ev, .au { color: var(--head); font: 500 26px/1.2 var(--sg); }
+.hd { position: absolute; left: 96px; right: 96px; top: 56px; display: flex; justify-content: space-between; gap: 48px; padding-bottom: 20px; border-bottom: 2px solid var(--rule); }
+.hd span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pg { position: absolute; right: 96px; bottom: 56px; }
+.pad { position: absolute; left: 96px; right: 96px; top: 150px; bottom: 120px; display: flex; flex-direction: column; justify-content: space-between; gap: 48px; }
+.small h2 { font-size: 44px; font-weight: 500; letter-spacing: -.03em; }
 
-/* cover · closing: 파스텔 원 + 제목 */
-.cover .c { position: absolute; border-radius: 50%; mix-blend-mode: multiply; }
-.cover .c1 { width: 820px; height: 820px; right: -140px; top: -220px; background: var(--lilac); }
-.cover .c2 { width: 640px; height: 640px; right: 380px; bottom: -330px; background: #FBECCE; }
-.cover .c3 { width: 560px; height: 560px; right: -120px; bottom: -90px; background: #DCE8FB; }
-.cover .in { position: absolute; left: 120px; top: 50%; max-width: 1250px; transform: translateY(-52%); }
-.cover .ev { margin-bottom: 36px; color: var(--muted); font: 600 28px var(--font-display); letter-spacing: .1em; text-transform: uppercase; }
-.cover h1 { margin: 0; font: 700 104px/1.2 var(--font-display); letter-spacing: -.05em; }
-.cover .sub { margin-top: 32px; color: var(--muted); font-size: 46px; line-height: 1.5; }
-.cover .au { margin-top: 72px; color: var(--muted); font-size: 32px; }
-.closing h1 { font-size: 120px; }
+/* 머리글이 없는 슬라이드는 맨 위에 가는 선 */
+.cover::before, .section::before, .statement::before { content: ""; position: absolute; left: 96px; right: 96px; top: 52px; border-top: 2px solid var(--rule); }
 
-/* section: 모서리 괄호 + 가운데 제목 */
-.section .in { position: absolute; left: 50%; top: 50%; min-width: 900px; padding: 110px 170px; transform: translate(-50%, -50%); text-align: center; }
-.section .in::before, .section .in::after { content: ""; position: absolute; width: 55%; height: 56px; border: 0 solid var(--violet); }
-.section .in::before { left: 0; top: 0; border-width: 4px 0 0 4px; }
-.section .in::after { right: 0; bottom: 0; border-width: 0 4px 4px 0; }
-.section h1 { margin: 0; font: 700 96px/1.25 var(--font-display); letter-spacing: -.045em; }
-.section p { margin: 28px 0 0; color: var(--muted); font-size: 40px; }
+/* 본문 줄: 크기는 --li (줄 수·길이에 맞춰 정해짐). content·split에서는 항목마다 가는 선으로 나눈다 */
+.tx li, .tx p { margin-top: 8px; color: var(--body); font-size: var(--li, 44px); font-weight: 400; line-height: 1.35; letter-spacing: -.02em; }
+.tx li.sub { margin-top: 0; padding-bottom: .75em; color: var(--muted); font-size: calc(var(--li, 44px) * .65); font-weight: 300; letter-spacing: 0; }
+.content .tx li:not(.sub), .split .tx li:not(.sub) { margin-top: 0; padding: .5em 0; border-top: 1.5px solid var(--rule); }
+.content .tx li:not(.sub):has(+ .sub), .split .tx li:not(.sub):has(+ .sub) { padding-bottom: .1em; }
+.content .tx li:last-child, .split .tx li:last-child { border-bottom: 1.5px solid var(--rule); }
+
+/* cover · closing */
+.cover .ev { position: absolute; left: 96px; top: 72px; }
+.cover .au { position: absolute; right: 96px; top: 72px; }
+.cover h1 { position: absolute; left: 84px; right: 84px; bottom: 200px; line-height: .98; letter-spacing: -.07em; }
+.cover h1 span { display: block; font-weight: 200; }
+.cover .sub { position: absolute; left: 100px; bottom: 90px; color: var(--muted); font-size: 30px; line-height: 1.6; }
+.closing h1 { bottom: 250px; }
+
+/* section: 작은 장 번호(오른쪽 위) + 제목 */
+.section .no { position: absolute; right: 96px; top: 100px; color: var(--head); font: 500 220px/1 var(--sg); letter-spacing: -.06em; }
+.section .no.long { font-size: 180px; }
+.section h1 { position: absolute; left: 96px; right: 96px; bottom: 190px; }
+.section p { position: absolute; left: 100px; bottom: 96px; color: var(--muted); font-size: 30px; font-weight: 300; }
 
 /* statement: 한 문장 */
-.statement .in { position: absolute; inset: 0 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-.statement p { max-width: 1500px; margin: 0; font: 700 92px/1.4 var(--font-display); letter-spacing: -.045em; }
-.statement .note { margin-top: 48px; color: var(--muted); font-size: 36px; line-height: 1.5; }
+.statement p { position: absolute; left: 96px; right: 96px; top: 130px; color: var(--head); font-weight: 700; line-height: 1.1; letter-spacing: -.065em; text-wrap: balance; }
+.statement .note { position: absolute; left: 100px; bottom: 96px; color: var(--muted); font-size: 30px; font-weight: 300; }
 
-/* cols: 2~3칸 카드 */
-.cols .g { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 48px; }
-.cols .card { padding: 52px 48px; border-radius: 28px; background: var(--paper); }
-.cols h3 { margin: 0 0 26px; font: 700 46px/1.3 var(--font-display); letter-spacing: -.03em; }
-.cols .tx p, .cols .tx li { font-size: 34px; }
+/* number: 큰 숫자 하나 */
+.number .val { display: block; color: var(--head); font-weight: 700; line-height: 1; letter-spacing: -.06em; }
+.number .lab { color: var(--head); font-size: 44px; font-weight: 500; line-height: 1.3; letter-spacing: -.03em; }
+.number .note { margin-top: 40px; color: var(--muted); font-size: 30px; font-weight: 300; }
+
+/* cols: 2~3칸, 위에 가는 선 */
+.cols .g { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 64px; }
+.cols .card { padding-top: 36px; border-top: 2px solid var(--rule); }
+.cols h3 { margin-bottom: 36px; }
+.cols .card p, .cols .card li { margin-top: 0; color: var(--body); font-size: 34px; font-weight: 400; line-height: 1.7; letter-spacing: -.01em; }
 
 /* figure · split: 그림 (mega-diagram SVG 등) */
-.figure .pad, .split .pad { display: flex; flex-direction: column; }
-.figure .fig { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 24px; }
-.figure img { width: 100%; height: 100%; object-fit: contain; }
-.cap { color: var(--muted); font-size: 28px; text-align: center; }
-.split .g { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 96px; align-items: center; }
-.split .fig { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 24px; height: 100%; }
-.split img { width: 100%; height: 100%; object-fit: contain; }
+.figure .fig { flex: 1; min-height: 0; margin-top: 48px; }
+.fig { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 32px; }
+.fig img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
+.cap { color: var(--muted); font-size: 30px; font-weight: 300; }
+.split .g { flex: 1; min-height: 0; margin-top: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 96px; align-items: center; }
+.split .fig { height: 100%; }
